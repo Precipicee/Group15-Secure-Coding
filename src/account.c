@@ -44,15 +44,27 @@ bool account_update_password(account_t *acc, const char *new_plaintext_password)
   return false;
 }
 
+/*
+    if account login failed or succeeded change the required account meta data to plus +1 (login_count , login_fail_count, last_login_time)(self explanatory)
+    make sure that the last IP address connected from metadata (last_ip) be set correctly
+    Whenever a user logs in successfully, their login_fail_count is set to 0
+    Whenever a user fails to log in successfully, their login_count is set to 0
+*/
 void account_record_login_success(account_t *acc, ip4_addr_t ip) {
   // remove the contents of this function and replace it with your own code.
-  (void) acc;
-  (void) ip;
+  acc->login_count=acc->login_count+1;
+  acc->login_fail_count=0;
+  acc->last_ip=ip;
+
+  //(void) acc;
+  //(void) ip;
 }
 
 void account_record_login_failure(account_t *acc) {
+   acc->login_count=0;
+  acc->login_fail_count=acc->login_fail_count+1;
   // remove the contents of this function and replace it with your own code.
-  (void) acc;
+  //(void) acc;
 }
 
 bool account_is_banned(const account_t *acc) {
