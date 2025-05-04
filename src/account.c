@@ -96,11 +96,51 @@ void account_set_email(account_t *acc, const char *new_email) {
   (void) acc;
   (void) new_email;
 }
+/*
+make a human readable summary of account current status which will be given to a file descriptor so address accordingly
+Write each variable in a human readable format - something like (readable_variable_name: readable_variable_output). For example, if user_id = 54125612356, we output "User ID: 54125612356".
+The variables required to make human readable are: userid, email, birthdate, login_count, login_fail_count and last_ip
+Return True on success, or false if write fails
 
+#define USER_ID_LENGTH 100 yp 
+#define HASH_LENGTH 128 
+#define EMAIL_LENGTH 100 yp
+#define BIRTHDATE_LENGTH 10 yp
+#define IP_SIZE 4 yp
+
+*/
+#include <unistd.h>
+#include <stdio.h>
 bool account_print_summary(const account_t *acct, int fd) {
+  char *format_summary = "User ID: \n, Email: \n, Birthdate: \n, Login Count: \n, Login Fail Count: \n, Last IP: \n";
+  int max_length= sizeof(unsigned int)*2 +USER_ID_LENGTH + EMAIL_LENGTH + BIRTHDATE_LENGTH + IP_SIZE+strlen(format_summary);
+
+  char message[max_length];
+  int message_success=snprintf(message, max_length,"User ID: %ld\n, Email: %s\n, Birthdate: %s\n, Login Count: %d\n, Login Fail Count: %d\n, Last IP: %s\n",acct->userid, acct->email, acct->birthdate, acct->login_count, acct->login_fail_count, acct->last_ip);
+  if (message_success < 0) {
+    perror("snprintf failed");
+    return false;
+  }
+  if ((size_t)message_success >= sizeof(message)) {
+    fprintf(stderr, "snprintf output was truncated\n");
+    return false;
+  }
+
+  ssize_t bytes_written = write(fd, message, message_success);
+
+  if (bytes_written == -1) {
+        perror("write failed");
+        return false;
+  }
+
+  if (bytes_written != (ssize_t)strlen(message)) {
+        fprintf(stderr, "Partial write occurred\n");
+        return false;
+  }
+  //write(1, "Hello, stdout!\n", 15);
   // remove the contents of this function and replace it with your own code.
-  (void) acct;
-  (void) fd;
-  return false;
+  //(void) acct;
+  //(void) fd;
+  return true;
 }
 
