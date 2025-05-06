@@ -69,14 +69,14 @@ void account_record_login_failure(account_t *acc) {
 
 bool account_is_banned(const account_t *acc) {
   // remove the contents of this function and replace it with your own code.
-  (void) acc;
-  return false;
+  time_t now = time(NULL);
+  return (acc->unban_time != 0) && (now < acc->unban_time);
 }
 
 bool account_is_expired(const account_t *acc) {
   // remove the contents of this function and replace it with your own code.
-  (void) acc;
-  return false;
+  time_t now = time(NULL);
+  return (acc->expiration_time != 0) && (now > acc->expiration_time);
 }
 
 void account_set_unban_time(account_t *acc, time_t t) {
