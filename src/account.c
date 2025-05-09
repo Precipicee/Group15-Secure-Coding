@@ -119,18 +119,48 @@ void account_free(account_t *acc) {
 
 
 bool account_validate_password(const account_t *acc, const char *plaintext_password) {
-  // remove the contents of this function and replace it with your own code.
-  (void) acc;
-  (void) plaintext_password;
-  return false;
+//libscrypt_check returns 0 on match, -1 on mismatch/error
+    int status = libscrypt_check(plaintext_password, acc->password_hash);
+
+//Checking if the password mathces/ if the plaintext is matching the password, if 0 it matches, if there 1 then the password does not match
+    if (status == 0) {
+        return true;
+    } else {
+        log_message(LOG_WARNING,
+                    "account_validate_password: Password mismatch for user %s",
+                    acc->userid);
+        return false;
+    }
 }
 
+
+
 bool account_update_password(account_t *acc, const char *new_plaintext_password) {
-  // remove the contents of this function and replace it with your own code.
-  (void) acc;
-  (void) new_plaintext_password;
-  return false;
+// Preconditions guaranteed by caller: acc and new_plaintext_password are non-NULL
+
+//1) Hash directly into acc->password_hash (size HASH_LENGTH)
+    if (libscrypt_hash(
+//Input new_plaintext_password bytes, length from strlen().
+            (const unsigned char*) new_plaintext_password,
+            strlen(new_plaintext_password),
+//Outpu writes the encoded hash into acc->password_hash buffer.
+            (unsigned char*) acc->password_hash,
+// HASH_LENGTH defines the size of the output buffer.
+            HASH_LENGTH
+        ) != 0)
+    {
+// Log an error if hashing fails, preserving the old password_hash
+        log_message(LOG_ERROR,
+                    "account_update_password: scrypt hashing failed for user %s",
+                    acc->userid);
+        return false;
+    }
+// Force null termination libscrypt_hash should do this, but just in case)
+    acc->password_hash[HASH_LENGTH - 1] = '\0';
+
+    return true;
 }
+
 
 void account_record_login_success(account_t *acc, ip4_addr_t ip) {
   acc->login_count=acc->login_count+1;//check that incrementing the value stays safe
@@ -165,9 +195,26 @@ void account_set_expiration_time(account_t *acc, time_t t) {
 }
 
 void account_set_email(account_t *acc, const char *new_email) {
-  // remove the contents of this function and replace it with your own code.
-  (void) acc;
-  (void) new_email;
+// Calls strlen() to count how many characters (not including the trailing '\0') are in new_email, and stores that in length.
+    size_t length = strlen(new_email);
+//Check for overflow: Compares length to EMAIL_LENGTH (the size of the acc->email array). Email length is 100 in account.h
+    if (length >= EMAIL_LENGTH) {
+        log_message(LOG_ERROR, "Email is too long. Max allowed is %d characters.", EMAIL_LENGTH - 1);
+        return;
+    }
+//Begin character validation loop:
+    for (size_t i = 0; i < length; i++) {
+//Fetch & sanitize one byte at a time it reads the ith character from new_email. Casts to unsigned char so it can be safely passed to character‐testing functions.
+        unsigned char c = (unsigned char)new_email[i];
+//Check for invalid characters such as !isprint(c): rejects non-printable characters. isspace(c): rejects any whitespace (space, tab, newline). 
+        if (!isprint(c) || isspace(c) || c == '\n' || c == '\r' || c == '\t') {
+            log_message(LOG_ERROR, "Email contains invalid character: ASCII %d", c);
+            return;
+        }
+    }
+//Safe updating the email and minus the null byte character 
+    strncpy(acc->email, new_email, EMAIL_LENGTH - 1);
+    acc->email[EMAIL_LENGTH - 1] = '\0';
 }
 /*
 make a human readable summary of account current status which will be given to a file descriptor so address accordingly
