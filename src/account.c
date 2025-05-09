@@ -84,11 +84,9 @@ bool account_validate_birthdate(const char *birthdate) {
 
   // use the account_update_password function to hash the password and store it in the structure.
   // to be implemented in the future.
-  // if(!account_update_password(new_acc, plaintext_password)) {
-  //   log_message();
-  //   account_free(new_acc);
-  //   return NULL;
-  // }
+if (!account_update_password(acc, plaintext_password)) {
+    goto fail;
+    }
 
   strncpy(new_acc->email, email, EMAIL_LENGTH);
   new_acc->email[EMAIL_LENGTH - 1] = '\0';
@@ -126,7 +124,7 @@ bool account_validate_password(const account_t *acc, const char *plaintext_passw
     if (status == 0) {
         return true;
     } else {
-        log_message(LOG_WARNING,
+        log_message(LOG_WARN,
                     "account_validate_password: Password mismatch for user %s",
                     acc->userid);
         return false;
