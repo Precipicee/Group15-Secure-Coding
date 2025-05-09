@@ -145,8 +145,11 @@ account_t *account_create(const char *userid, const char *plaintext_password,
 
 
 void account_free(account_t *acc) {
-  // remove the contents of this function and replace it with your own code.
-  (void) acc;
+  if (acc == NULL) {
+    return;
+  }
+  memset(acc, 0, sizeof(account_t));
+  free(acc);
 }
 
 
@@ -218,20 +221,14 @@ bool account_update_password(account_t *acc, const char *new_plaintext_password)
     Whenever a user fails to log in successfully, their login_count is set to 0
 */
 void account_record_login_success(account_t *acc, ip4_addr_t ip) {
-  // remove the contents of this function and replace it with your own code.
-  acc->login_count=acc->login_count+1;
+  acc->login_count=acc->login_count+1;//check that incrementing the value stays safe
   acc->login_fail_count=0;
   acc->last_ip=ip;
-
-  //(void) acc;
-  //(void) ip;
 }
 
 void account_record_login_failure(account_t *acc) {
-   acc->login_count=0;
-  acc->login_fail_count=acc->login_fail_count+1;
-  // remove the contents of this function and replace it with your own code.
-  //(void) acc;
+  acc->login_count=0;
+  acc->login_fail_count=acc->login_fail_count+1; //check that incrementing the value stays safe 
 }
 
 bool account_is_banned(const account_t *acc) {
@@ -247,15 +244,12 @@ bool account_is_expired(const account_t *acc) {
 }
 
 void account_set_unban_time(account_t *acc, time_t t) {
-  // remove the contents of this function and replace it with your own code.
-  (void) acc;
-  (void) t;
+  acc->unban_time=t;
 }
 
 void account_set_expiration_time(account_t *acc, time_t t) {
   // remove the contents of this function and replace it with your own code.
-  (void) acc;
-  (void) t;
+  acc->expiration_time=t;
 }
 
 void account_set_email(account_t *acc, const char *new_email) {
@@ -279,21 +273,22 @@ Return True on success, or false if write fails
 #include <unistd.h>
 #include <stdio.h>
 bool account_print_summary(const account_t *acct, int fd) {
+
   char *format_summary = "User ID: \n, Email: \n, Birthdate: \n, Login Count: \n, Login Fail Count: \n, Last IP: \n";
   int max_length= sizeof(unsigned int)*2 +USER_ID_LENGTH + EMAIL_LENGTH + BIRTHDATE_LENGTH + IP_SIZE+strlen(format_summary);
 
   char message[max_length];
   int message_success=snprintf(message, max_length,"User ID: %ld\n, Email: %s\n, Birthdate: %s\n, Login Count: %d\n, Login Fail Count: %d\n, Last IP: %s\n",acct->userid, acct->email, acct->birthdate, acct->login_count, acct->login_fail_count, acct->last_ip);
   if (message_success < 0) {
-    perror("snprintf failed");
+    perror("snprintf failed");//do logg error function provided
     return false;
   }
   if ((size_t)message_success >= sizeof(message)) {
     fprintf(stderr, "snprintf output was truncated\n");
     return false;
-  }
-
-  ssize_t bytes_written = write(fd, message, message_success);
+  } 
+  // check for file descriptor change value vulnerability
+  ssize_t bytes_written = write(fd, message, message_success); //check safty of write
 
   if (bytes_written == -1) {
         perror("write failed");
@@ -304,10 +299,6 @@ bool account_print_summary(const account_t *acct, int fd) {
         fprintf(stderr, "Partial write occurred\n");
         return false;
   }
-  //write(1, "Hello, stdout!\n", 15);
-  // remove the contents of this function and replace it with your own code.
-  //(void) acct;
-  //(void) fd;
   return true;
 }
 
