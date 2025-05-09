@@ -92,10 +92,28 @@ void account_set_expiration_time(account_t *acc, time_t t) {
 }
 
 void account_set_email(account_t *acc, const char *new_email) {
-  // remove the contents of this function and replace it with your own code.
-  (void) acc;
-  (void) new_email;
+// Calls strlen() to count how many characters (not including the trailing '\0') are in new_email, and stores that in length.
+    size_t length = strlen(new_email);
+//Check for overflow: Compares length to EMAIL_LENGTH (the size of the acc->email array). Email length is 100 in account.h
+    if (length >= EMAIL_LENGTH) {
+        log_message(LOG_ERROR, "Email is too long. Max allowed is %d characters.", EMAIL_LENGTH - 1);
+        return;
+    }
+//Begin character validation loop:
+    for (size_t i = 0; i < length; i++) {
+//Fetch & sanitize one byte at a time it reads the ith character from new_email. Casts to unsigned char so it can be safely passed to character‐testing functions.
+        unsigned char c = (unsigned char)new_email[i];
+//Check for invalid characters such as !isprint(c): rejects non-printable characters. isspace(c): rejects any whitespace (space, tab, newline). 
+        if (!isprint(c) || isspace(c) || c == '\n' || c == '\r' || c == '\t') {
+            log_message(LOG_ERROR, "Email contains invalid character: ASCII %d", c);
+            return;
+        }
+    }
+//Safe updating the email and minus the null byte character 
+    strncpy(acc->email, new_email, EMAIL_LENGTH - 1);
+    acc->email[EMAIL_LENGTH - 1] = '\0';
 }
+
 /*
 make a human readable summary of account current status which will be given to a file descriptor so address accordingly
 Write each variable in a human readable format - something like (readable_variable_name: readable_variable_output). For example, if user_id = 54125612356, we output "User ID: 54125612356".
