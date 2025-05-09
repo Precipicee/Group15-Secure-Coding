@@ -31,11 +31,20 @@ void account_free(account_t *acc) {
 
 
 bool account_validate_password(const account_t *acc, const char *plaintext_password) {
-  // remove the contents of this function and replace it with your own code.
-  (void) acc;
-  (void) plaintext_password;
-  return false;
+//libscrypt_check returns 0 on match, -1 on mismatch/error
+    int status = libscrypt_check(plaintext_password, acc->password_hash);
+
+//Checking if the password mathces/ if the plaintext is matching the password, if 0 it matches, if there 1 then the password does not match
+    if (status == 0) {
+        return true;
+    } else {
+        log_message(LOG_WARNING,
+                    "account_validate_password: Password mismatch for user %s",
+                    acc->userid);
+        return false;
+    }
 }
+
 
 bool account_update_password(account_t *acc, const char *new_plaintext_password) {
   // remove the contents of this function and replace it with your own code.
